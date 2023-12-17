@@ -40,7 +40,7 @@ async function run() {
    //  mongodb services collection 
     const servicesCollection = client.db('carDoctor').collection('services')
    //  mongodb booking collection data push 
-   const bookingCollection = client.db('bookingDB').collection('booking')
+   const bookingCollection = client.db('carDoctor').collection('booking')
 
    //  get the data 
    app.get('/services', async(req, res) => {
@@ -54,8 +54,8 @@ async function run() {
       const id = req.params.id;
       const query = {_id: new ObjectId(id)}
       const options = {
-         // Include only the `title` and `imdb` fields in the returned document
-         projection: {title: 1, price: 1 },
+         // Include only the `title` `price` and `img` fields in the returned document
+         projection: {title: 1, price: 1, img:1 },
       }
       const result = await servicesCollection.findOne(query, options)
       res.send(result)
@@ -72,6 +72,17 @@ async function run() {
 
    // get the booking path 
    app.get('/bookings', async (req, res) => {
+
+      /*****************query start****************/ 
+      // the check query syntax: http://localhost:5000/bookings?email=Kusula@gmail.com
+      let query = {}
+      // if email there area email this . the in query push 
+      if(req.query?.email) {
+         query = {email: req.query.email}
+         console.log(query)
+      }
+      /*****************query end****************/ 
+
       const getBookingData = await bookingCollection.find().toArray()
       res.send(getBookingData)
    })
