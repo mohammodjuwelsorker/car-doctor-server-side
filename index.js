@@ -37,7 +37,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
+   //  mongodb services collection 
     const servicesCollection = client.db('carDoctor').collection('services')
+   //  mongodb booking collection data push 
+   const bookingCollection = client.db('bookingDB').collection('booking')
 
    //  get the data 
    app.get('/services', async(req, res) => {
@@ -57,6 +60,23 @@ async function run() {
       const result = await servicesCollection.findOne(query, options)
       res.send(result)
    })
+
+   /****************************bookings path created***************************/
+
+   // create booking path 
+   app.post('/bookings', async (req, res) => {
+      const bookingData = req.body;
+      const result = await bookingCollection.insertOne(bookingData)
+      res.send(result)
+   })
+
+   // get the booking path 
+   app.get('/bookings', async (req, res) => {
+      const getBookingData = await bookingCollection.find().toArray()
+      res.send(getBookingData)
+   })
+
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
