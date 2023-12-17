@@ -79,12 +79,31 @@ async function run() {
       // if email there area email this . the in query push 
       if(req.query?.email) {
          query = {email: req.query.email}
-         console.log(query)
+         // console.log(query)
       }
       /*****************query end****************/ 
 
       const getBookingData = await bookingCollection.find().toArray()
       res.send(getBookingData)
+   })
+
+   // update specific with id 
+   
+
+   // delete specific id 
+   app.delete('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await bookingCollection.deleteOne(query)
+      res.send(result)
+   })
+
+   // delete id path 
+   app.get('/bookings/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = {_id: new ObjectId(id)}
+      const result = await bookingCollection.find(filter)
+      res.send(result)
    })
 
 
