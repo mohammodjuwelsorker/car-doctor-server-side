@@ -1,23 +1,25 @@
-const express = require('express')
-const cors = require('cors')
-require('dotenv').config()
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express()
-const port = process.env.PORT || 5000  
+const port = process.env.PORT || 5000  ;
 
 // middleware 
-app.use(express.json())
-app.use(cors())
+app.use(express.json());
+app.use(cors({
+   origin: ['http://localhost:5173', 'http://localhost:5174'],
+   credentials: true
+}));
+app.use(cookieParser());
 
-// carDoctor
-// tGS7wZKD2LYQLoh0
-
-console.log()
 
 app.get('/', (req, res) => {
    res.send('car doctor server is running')
-})
+});
 
 
 // mongodb config start 
@@ -42,6 +44,22 @@ async function run() {
    //  mongodb booking collection data push 
    const bookingCollection = client.db('carDoctor').collection('booking')
 
+
+   
+   /*******************jwt********************/ 
+   app.post('/jwt', (req, res) => {
+      const user = req.body;
+      // console.log(user)
+
+      // the token  set
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
+      // brawer cookies set 
+      res.cookie('Access_Token', token, {
+         httpOnly: true,
+         secure: false
+      }).send({Success: true})
+   });
+
    //  get the data 
    app.get('/services', async(req, res) => {
       const cursor = servicesCollection.find()
@@ -61,7 +79,7 @@ async function run() {
       res.send(result)
    })
 
-   /****************************bookings path created***************************/
+   /************************bookings path created*************************/
 
    // create booking path 
    app.post('/bookings', async (req, res) => {
@@ -72,7 +90,7 @@ async function run() {
 
    // get the booking path 
    app.get('/bookings', async (req, res) => {
-
+      console.log('ttt token: ', req.cookies.Access_Token)
       /*****************query start****************/ 
       // the check query syntax: http://localhost:5000/bookings?email=Kusula@gmail.com
       let query = {}
@@ -82,8 +100,7 @@ async function run() {
          // console.log(query)
       }
       /*****************query end****************/ 
-
-      const getBookingData = await bookingCollection.find().toArray()
+      const getBookingData = await bookingCollection.find(query).toArray()
       res.send(getBookingData)
    })
 
@@ -114,7 +131,7 @@ async function run() {
    app.get('/bookings/:id', async (req, res) => {
       const id = req.params.id;
       const filter = {_id: new ObjectId(id)}
-      const result = await bookingCollection.find(filter)
+      const result = await bookingCollection.findOne(filter)
       res.send(result)
    })
 
