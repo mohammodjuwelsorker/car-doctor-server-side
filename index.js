@@ -34,6 +34,37 @@ const client = new MongoClient(uri, {
   }
 });
 
+/*****************personal middlewares******************/
+const logged = async(req, res, next) => {
+   console.log('logged info: ', res.method, req.url, req.hostname, req.pathname)
+   next()
+}
+
+// verify token middleware 
+const verifyToken = (req, res, next) => {
+   const token = req.cookies.token
+   console.log('middleware tokenL',token)
+   // no token available validation check 
+   if(!token) {
+      return res.status(401).send({message: 'not authorized'})
+   }
+   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      // err check 
+      if(err) {
+         return res.status(401).send({message: 'unauthorized'})
+      }
+      // valid decoded 
+      // set the decoded 
+      req.userEmail = decoded
+      // the next work next function is it 
+      next()
+      
+   })
+   
+   
+}
+ 
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -46,21 +77,29 @@ async function run() {
 
 
    
-   /*******************jwt********************/ 
+   /*******************jwt auth related api********************/
    app.post('/jwt', (req, res) => {
-      const user = req.body;
-      // console.log(user)
+      const userEmail = req.body;
+      console.log('84444 user for email token: ', userEmail.email)
 
-      // the token  set
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
-      // brawer cookies set 
-      res.cookie('Access_Token', token, {
+      // the token set the brawer cookies 
+      const token = jwt.sign(userEmail, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
+      res.cookie('token', token, {
          httpOnly: true,
-         secure: false
-      }).send({Success: true})
+         secure: true,
+         sameSite: 'none'
+      }).send({success: true})
+      
+   }); 
+
+   // user logout api 
+   app.post('/logout', (req, res) => {
+      const userEmail = req.body;
+      console.log('logout user email info: ', userEmail)
+      res.clearCookie('token', {maxAge: 0}).send({success: true})
    });
 
-   //  get the data 
+   /**********************services related api***************************/
    app.get('/services', async(req, res) => {
       const cursor = servicesCollection.find()
       const result = await cursor.toArray()
@@ -68,7 +107,7 @@ async function run() {
    })
 
    // specific id 
-   app.get('/services/:id', async(req, res) => {
+   app.get('/services/:id',  async(req, res) => {
       const id = req.params.id;
       const query = {_id: new ObjectId(id)}
       const options = {
@@ -79,25 +118,30 @@ async function run() {
       res.send(result)
    })
 
-   /************************bookings path created*************************/
-
+   /************************bookings related api*************************/
    // create booking path 
-   app.post('/bookings', async (req, res) => {
+   app.post('/bookings',  async (req, res) => {
       const bookingData = req.body;
       const result = await bookingCollection.insertOne(bookingData)
       res.send(result)
    })
 
    // get the booking path 
-   app.get('/bookings', async (req, res) => {
-      console.log('ttt token: ', req.cookies.Access_Token)
+   app.get('/bookings', logged, verifyToken, async (req, res) => {
+
+      console.log("check email: ", req.userEmail?.email + " and " + req.query.email)
+      // owner data validation 
+      if(req.userEmail.email !== req.query.email) {
+         return res.status(403).send({message: 'forbidden access'})
+      }
       /*****************query start****************/ 
       // the check query syntax: http://localhost:5000/bookings?email=Kusula@gmail.com
       let query = {}
       // if email there area email this . the in query push 
+      // console.log(query)
       if(req.query?.email) {
          query = {email: req.query.email}
-         // console.log(query)
+         console.log(query)
       }
       /*****************query end****************/ 
       const getBookingData = await bookingCollection.find(query).toArray()
